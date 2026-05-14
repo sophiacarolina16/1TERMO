@@ -1,5 +1,7 @@
 📚 Disciplinas Incluídas
+
 🔌 1. Arquitetura IoT
+
 Exploração do ecossistema de Internet das Coisas (IoT) com foco em hardware, conectividade e programação embarcada.
 
 Plataformas: Arduino Uno e ESP32 (NodeMCU).
