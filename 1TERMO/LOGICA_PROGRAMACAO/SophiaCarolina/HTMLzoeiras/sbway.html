@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Subway Surfers - 3D Lite</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 450px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 4px solid #333;
+            border-radius: 8px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .hud {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            display: flex;
+            gap: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 6px;
+        }
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #2ecc71;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="hud">
+            <span>Pontos: <span id="score">0</span></span>
+            <span>Moedas: 💰<span id="coins">0</span></span>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="game-over">
+            <h1>FIM DE JOGO</h1>
+            <p>Você foi pego pelo Guarda!</p>
+            <button onclick="resetGame()">JOGAR NOVAMENTE</button>
+        </div>
+    </div>
+    
+    <p style="margin-top:15px;">Use as <strong>Setas (Esquerda/Direita)</strong> para mudar de pista e <strong>Seta Cima</strong> para pular.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // --- Inicialização do Three.js ---
+    const container = document.getElementById('game-container');
+    const canvas = document.getElementById('gameCanvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x22252a);
+    scene.fog = new THREE.FogExp2(0x22252a, 0.03);
+
+    const camera = new THREE.PerspectiveCamera(60, 800 / 450, 0.1, 1000);
+    camera.position.set(0, 2.5, 6); // Visão em 3ª pessoa
+    camera.lookAt(0, 0, -5);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(800, 450);
+
+    // --- Iluminação ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(0, 10, 5);
+    scene.add(dirLight);
+
+    // --- Pistas e Personagem ---
+    const pistas = [-2.5, 0, 2.5]; // Esquerda, Meio, Direita
+    let pistaAtual = 1; // Começa no meio
+    
+    const geometryJogador = new THREE.SphereGeometry(0.5, 16, 16);
+    const materialJogador = new THREE.MeshPhongMaterial({ color: 0xe74c3c });
+    const jogador = new THREE.Mesh(geometryJogador, materialJogador);
+    jogador.position.set(pistas[pistaAtual], 0.5, 0);
+    scene.add(jogador);
+
+    // Variáveis de Movimento
+    let isJumping = false;
+    let jumpTime = 0;
+    const jumpDuration = 0.5;
+    const jumpHeight = 1.5;
+
+    // --- Chão ---
+    const geometryChao = new THREE.PlaneGeometry(20, 300);
+    const materialChao = new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.8 });
+    const chao = new THREE.Mesh(geometryChao, materialChao);
+    chao.rotation.x = -Math.PI / 2;
+    chao.position.z = -100;
+    scene.add(chao);
+
+    // --- Objetos (Obstáculos e Moedas) ---
+    const objetos = [];
+    
+    function criarObjeto() {
+        const tipo = Math.random() < 0.6 ? 'obstaculo' : 'moeda';
+        const pistaAlvo = pistas[Math.floor(Math.random() * 3)];
+        
+        let objGeom;
+        let objMat;
+
+        if (tipo === 'obstaculo') {
+            objGeom = new THREE.BoxGeometry(1.2, 0.8, 0.5);
+            objMat = new THREE.MeshPhongMaterial({ color: 0x95a5a6 });
+        } else {
+            objGeom = new THREE.DodecahedronGeometry(0.25);
+            objMat = new THREE.MeshPhongMaterial({ color: 0xf1c40f, emissive: 0xcc9900 });
+        }
+
+        const obj = new THREE.Mesh(objGeom, objMat);
+        obj.position.set(pistaAlvo, tipo === 'moeda' ? 0.3 : 0.4, -60);
+        obj.userData = { tipo, pista: pistaAlvo };
+        
+        scene.add(obj);
+        objetos.push(obj);
+    }
+
+    // Criador de objetos a cada 1.5 segundos
+    let criarObjInterval = setInterval(criarObjeto, 1500);
+
+    // --- Mecânicas de Jogo ---
+    let score = 0;
+    let coins = 0;
+    let gameOver = false;
+
+    // Eventos de teclado
+    window.addEventListener('keydown', (e) => {
+        if (gameOver) return;
+
+        if (e.key === 'ArrowLeft' && pistaAtual > 0) {
+            pistaAtual--;
+        } else if (e.key === 'ArrowRight' && pistaAtual < 2) {
+            pistaAtual++;
+        } else if ((e.key === 'ArrowUp' || e.key === ' ') && !isJumping) {
+            isJumping = true;
+            jumpTime = 0;
+        }
+    });
+
+    function updatePhysics(delta) {
+        // Suavizar movimento lateral do jogador
+        const alvoX = pistas[pistaAtual];
+        jogador.position.x += (alvoX - jogador.position.x) * 0.3;
+
+        // Física de pulso
+        if (isJumping) {
+            jumpTime += delta;
+            if (jumpTime > jumpDuration) {
+                isJumping = false;
+                jogador.position.y = 0.5;
+            } else {
+                const progresso = jumpTime / jumpDuration;
+                jogador.position.y = 0.5 + Math.sin(progresso * Math.PI) * jumpHeight;
+            }
+        }
+    }
+
+    function checkCollisions() {
+        objetos.forEach((obj, index) => {
+            // Distância do jogador na Z
+            const distZ = Math.abs(obj.position.z - jogador.position.z);
+            const distX = Math.abs(obj.position.x - jogador.position.x);
+
+            if (distZ < 0.5 && distX < 0.4) {
+                if (obj.userData.tipo === 'moeda') {
+                    coins += 1;
+                    document.getElementById('coins').innerText = coins;
+                    scene.remove(obj);
+                    objetos.splice(index, 1);
+                } else if (obj.userData.tipo === 'obstaculo') {
+                    // Impede colisão durante o pulso
+                    if (!isJumping || jogador.position.y < 0.8) {
+                        triggerGameOver();
+                    }
+                }
+            }
+        });
+    }
+
+    function triggerGameOver() {
+        gameOver = true;
+        document.getElementById('game-over').style.display = 'flex';
+        clearInterval(criarObjInterval);
+    }
+
+    function resetGame() {
+        gameOver = false;
+        score = 0;
+        coins = 0;
+        pistaAtual = 1;
+        document.getElementById('score').innerText = score;
+        document.getElementById('coins').innerText = coins;
+        document.getElementById('game-over').style.display = 'none';
+
+        // Limpar objetos
+        objetos.forEach(o => scene.remove(o));
+        objetos.length = 0;
+
+        jogador.position.set(pistas[1], 0.5, 0);
+        criarObjInterval = setInterval(criarObjeto, 1500);
+    }
+
+    // --- Loop de Animação ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+        if (gameOver) return;
+
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+        score += 1;
+        document.getElementById('score').innerText = Math.floor(score / 10);
+
+        updatePhysics(delta);
+
+        // Mover objetos em direção ao jogador
+        for (let i = objetos.length - 1; i >= 0; i--) {
+            const obj = objetos[i];
+            obj.position.z += 12 * delta; // Velocidade
+
+            // Remover objeto se passar do jogador
+            if (obj.position.z > 2) {
+                scene.remove(obj);
+                objetos.splice(i, 1);
+            }
+        }
+
+        checkCollisions();
+
+        renderer.render(scene, camera);
+    }
+
+    // --- Inicializa ---
+    resetGame();
+    animate();
+</script>
+</body>
+</html>
