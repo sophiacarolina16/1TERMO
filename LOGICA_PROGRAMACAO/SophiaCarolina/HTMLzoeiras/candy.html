@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Candy Crush Lite</title>
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            --board-bg: #34495e;
+            --candy-size: 60px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 { margin: 10px; }
+
+        .stats {
+            display: flex;
+            gap: 40px;
+            font-size: 22px;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 25px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        #candy-board {
+            display: grid;
+            grid-template-columns: repeat(8, var(--candy-size));
+            grid-template-rows: repeat(8, var(--candy-size));
+            gap: 4px;
+            background-color: var(--board-bg);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            user-select: none;
+        }
+
+        .candy {
+            width: var(--candy-size);
+            height: var(--candy-size);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
+        }
+
+        .candy:hover {
+            transform: scale(1.1);
+            filter: brightness(1.1);
+        }
+
+        .candy.selected {
+            border: 3px solid #fff;
+            box-sizing: border-box;
+        }
+
+        /* Cores dos Doces */
+        .candy-red { background-color: #e74c3c; }
+        .candy-blue { background-color: #3498db; }
+        .candy-green { background-color: #2ecc71; }
+        .candy-yellow { background-color: #f1c40f; }
+        .candy-purple { background-color: #9b59b6; }
+
+        .btn-reset {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-reset:hover {
+            background-color: #d35400;
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🍬 Candy Crush Lite 🍬</h1>
+    <div class="stats">
+        <span>Pontuação: <span id="score">0</span></span>
+        <span>Movimentos: <span id="moves">15</span></span>
+    </div>
+
+    <div id="candy-board"></div>
+
+    <button class="btn-reset" onclick="initGame()">NOVO JOGO</button>
+
+<script>
+    const boardSize = 8;
+    const candyTypes = ['🔴', '🔵', '🟢', '🟡', '🟣'];
+    const candyColors = ['candy-red', 'candy-blue', 'candy-green', 'candy-yellow', 'candy-purple'];
+    const boardElement = document.getElementById('candy-board');
+    
+    let board = [];
+    let score = 0;
+    let moves = 15;
+    let selectedCandy = null;
+
+    function initGame() {
+        boardElement.innerHTML = '';
+        board = [];
+        score = 0;
+        moves = 15;
+        document.getElementById('score').innerText = score;
+        document.getElementById('moves').innerText = moves;
+
+        for (let r = 0; r < boardSize; r++) {
+            board[r] = [];
+            for (let c = 0; c < boardSize; c++) {
+                let randomType = Math.floor(Math.random() * candyTypes.length);
+                let candy = document.createElement('div');
+                
+                candy.className = `candy ${candyColors[randomType]}`;
+                candy.dataset.row = r;
+                candy.dataset.col = c;
+                candy.innerHTML = candyTypes[randomType];
+                
+                candy.addEventListener('click', () => selectCandy(candy));
+                
+                boardElement.appendChild(candy);
+                board[r][c] = candy;
+            }
+        }
+        
+        // Verifica se existem combinações iniciais e limpa
+        checkMatches();
+    }
+
+    function selectCandy(candyElement) {
+        if (moves <= 0) return;
+
+        if (!selectedCandy) {
+            selectedCandy = candyElement;
+            selectedCandy.classList.add('selected');
+        } else {
+            let r1 = parseInt(selectedCandy.dataset.row);
+            let c1 = parseInt(selectedCandy.dataset.col);
+            let r2 = parseInt(candyElement.dataset.row);
+            let c2 = parseInt(candyElement.dataset.col);
+
+            // Verifica se as células são vizinhas
+            let isAdjacent = (Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1;
+
+            if (isAdjacent) {
+                // Troca no tabuleiro
+                let tempHTML = selectedCandy.innerHTML;
+                let tempClass = selectedCandy.className;
+
+                selectedCandy.innerHTML = candyElement.innerHTML;
+                selectedCandy.className = candyElement.className;
+                
+                candyElement.innerHTML = tempHTML;
+                candyElement.className = tempClass;
+
+                moves--;
+                document.getElementById('moves').innerText = moves;
+
+                // Restaura a cor de seleção e valida
+                selectedCandy.classList.remove('selected');
+                selectedCandy = null;
+                
+                setTimeout(() => {
+                    if (!checkMatches()) {
+                        // Se não houver combinação, volta à posição anterior
+                        let tempHTML = selectedCandyEl.innerHTML; // Tratado local
+                        initGame(); // Alternativa simples para reverter
+                    }
+                }, 400);
+
+            } else {
+                selectedCandy.classList.remove('selected');
+                selectedCandy = candyElement;
+                selectedCandy.classList.add('selected');
+            }
+        }
+    }
+
+    function checkMatches() {
+        let matched = false;
+
+        // Verificar horizontal
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize - 2; c++) {
+                let candy1 = board[r][c].innerHTML;
+                let candy2 = board[r][c+1].innerHTML;
+                let candy3 = board[r][c+2].innerHTML;
+
+                if (candy1 === candy2 && candy2 === candy3) {
+                    matched = true;
+                    // Limpar linha
+                    board[r][c].innerHTML = '';
+                    board[r][c].className = 'candy';
+                    board[r][c+1].innerHTML = '';
+                    board[r][c+1].className = 'candy';
+                    board[r][c+2].innerHTML = '';
+                    board[r][c+2].className = 'candy';
+                    score += 30;
+                }
+            }
+        }
+
+        // Verificar vertical
+        for (let c = 0; c < boardSize; c++) {
+            for (let r = 0; r < boardSize - 2; r++) {
+                let candy1 = board[r][c].innerHTML;
+                let candy2 = board[r+1][c].innerHTML;
+                let candy3 = board[r+2][c].innerHTML;
+
+                if (candy1 === candy2 && candy2 === candy3) {
+                    matched = true;
+                    // Limpar coluna
+                    board[r][c].innerHTML = '';
+                    board[r][c].className = 'candy';
+                    board[r+1][c].innerHTML = '';
+                    board[r+1][c].className = 'candy';
+                    board[r+2][c].innerHTML = '';
+                    board[r+2][c].className = 'candy';
+                    score += 30;
+                }
+            }
+        }
+
+        document.getElementById('score').innerText = score;
+        if (matched) {
+            setTimeout(refillBoard, 500);
+        }
+        return matched;
+    }
+
+    function refillBoard() {
+        // Faz os doces caírem e preenche os espaços vazios
+        for (let c = 0; c < boardSize; c++) {
+            for (let r = boardSize - 1; r > 0; r--) {
+                if (board[r][c].innerHTML === '') {
+                    // Puxa o de cima
+                    let rUp = r - 1;
+                    while (rUp >= 0 && board[rUp][c].innerHTML === '') {
+                        rUp--;
+                    }
+                    if (rUp >= 0) {
+                        board[r][c].innerHTML = board[rUp][c].innerHTML;
+                        board[r][c].className = board[rUp][c].className;
+                        
+                        board[rUp][c].innerHTML = '';
+                        board[rUp][c].className = 'candy';
+                    }
+                }
+            }
+            
+            // Preenche o topo
+            for (let r = 0; r < boardSize; r++) {
+                if (board[r][c].innerHTML === '') {
+                    let randomType = Math.floor(Math.random() * candyTypes.length);
+                    board[r][c].innerHTML = candyTypes[randomType];
+                    board[r][c].className = `candy ${candyColors[randomType]}`;
+                }
+            }
+        }
+
+        // Verifica novas combinações após a queda
+        setTimeout(checkMatches, 400);
+    }
+
+    initGame();
+</script>
+</body>
+</html>
