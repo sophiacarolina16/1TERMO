@@ -1,6 +1,6 @@
-📚 Disciplinas Incluídas
+#📚 Disciplinas Incluídas
 
-🔌 1. Arquitetura IoT
+##🔌 1. Arquitetura IoT
 
 Exploração do ecossistema de Internet das Coisas (IoT) com foco em hardware, conectividade e programação embarcada.
 
@@ -10,7 +10,7 @@ Linguagens: C++ para firmware e Python/MicroPython para automação e gateways.
 
 Tópicos: Protocolos de comunicação, sensores, atuadores e telemetria.
 
-📋 2. Levantamento de Requisitos e Engenharia de Software
+##📋 2. Levantamento de Requisitos e Engenharia de Software
 
 Abordagem prática sobre a especificação de software e gerenciamento ágil de projetos tecnológicos.
 
@@ -21,7 +21,7 @@ Metodologias: Topologia ágil (Sprints, Backlog, Daily Scrum e Review).
 
 Documentação: Relatórios técnicos e diagramas de arquitetura/fluxo.
 
-💻 3. Sistemas Operacionais
+##💻 3. Sistemas Operacionais
 
 Análise aprofundada da arquitetura interna e do gerenciamento de recursos dos principais SOs do mercado.
 
@@ -30,7 +30,7 @@ Plataformas: Windows, Linux e iOS.
 
 Componentes: Estruturas de Kernel, gerenciamento de processos (CPU), memória (Swap/Virtual) e sistemas de arquivos (NTFS, Ext4, APFS).
 
-🐍 4. Lógica de Programação com Python
+##🐍 4. Lógica de Programação com Python
 
 Desenvolvimento do pensamento computacional estruturado utilizando uma das linguagens mais populares do mundo.
 
@@ -42,7 +42,7 @@ Controle de Fluxo: Estruturas de repetição (for e while) e modularização (im
 Qualidade: Padrão PEP 8 e escrita de código limpo (Clean Code).
 
 
-🛠️ Tecnologias e Ferramentas Utilizadas
+#🛠️ Tecnologias e Ferramentas Utilizadas
 Linguagens: Python, C++, Markdown, Mermaid.
 Hardware: Arduino, ESP32, Sensores/Atuadores diversos.
 Ambientes: VS Code, Thonny IDE, Arduino IDE.
