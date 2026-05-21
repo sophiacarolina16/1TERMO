@@ -57,8 +57,11 @@ while True:
         print("NR-35 concluido")
     elif status2 == "N":
         print("NR-35 não concluido")
+        
+    ano_atual = 2026
+    status4=ano_atual-status3
     
-    if status3 > 2:
+    if status4 > 2:
         print("Treinamento vencido! Encaminhar para reciclagem")
     elif status3 == "N":
         print("Treinamento Valido")
@@ -66,4 +69,4 @@ while True:
     sleep(3.0)
     print("RETOMANDO A AREA DE CADASTRO")
     sleep(3.0)
-        
+
