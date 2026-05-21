@@ -37,18 +37,33 @@ sleep(1.0)
 
 while True:
     def informações():
-        informações = "nome", "setor", "status"
-        setor = "eletrica", "trabalho em altura"
-        status = "NR-10", "NR-35", "Brigada"
-        
+
         return informações
     nome = input("Digite seu nome: ")
-    setor = input("Digite seu setor:")
-    status = input("Digite seu status:")
+    setor = input("Digite seu setor: ")
+    status1 = input("NR-10 status(S/N): ")
+    status2 = input("NR-35 status(S/N): ")
+    status3 = int(input("Brigada ultimo ano feito: "))
     if setor == "eletrica":
         print("ATENÇÂO: Uso obrigatorio de luvas de alta tensão e botas dielétricas!")
     elif setor == "trabalho em altura":
         print("ATENÇÂO: Uso obrigatorio de cinturão de segurança e talabarte!")
+    if status1 == "S":
+        print("NR-10 concluido")
+    elif status1 == "N":
+        print("NR-10 não concluido")
         
+    if status2 == "S":
+        print("NR-35 concluido")
+    elif status2 == "N":
+        print("NR-35 não concluido")
     
+    if status3 > 2:
+        print("Treinamento vencido! Encaminhar para reciclagem")
+    elif status3 == "N":
+        print("Treinamento Valido")
+        
+    sleep(3.0)
+    print("RETOMANDO A AREA DE CADASTRO")
+    sleep(3.0)
         
