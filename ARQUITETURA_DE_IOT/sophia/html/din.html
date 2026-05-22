@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Select - Side Scroller</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0f19;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 5px;
+            font-size: 26px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 2px;
+            color: #4ade80;
+        }
+        
+        /* Menu de Seleção de Dinos */
+        .menu-selecao {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 2px solid #334155;
+        }
+        .btn-dino {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 2px solid #475569;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-dino:hover {
+            background: #334155;
+            color: #fff;
+            transform: scale(1.05);
+        }
+        .btn-dino.ativo {
+            background: #22c55e;
+            color: #000;
+            border-color: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+
+        canvas {
+            border: 4px solid #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+        .controles {
+            margin-top: 15px;
+            text-align: center;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid #334155;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        span {
+            color: #4ade80;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+
+    
+    <div class="menu-selecao">
+        <button class="btn-dino ativo" onclick="mudarDino('triceratops')">Triceratops</button>
+        <button class="btn-dino" onclick="mudarDino('braquiossauro')">Braquiossauro</button>
+        <button class="btn-dino" onclick="mudarDino('velociraptor')">Velociraptor</button>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Dados de tamanho e física específicos de cada dinossauro
+        const configDinos = {
+            triceratops: { width: 68, height: 46, speed: 4.5, cor: '#ca8a04', corEscura: '#854d0e' },
+            braquiossauro: { width: 65, height: 80, speed: 3.5, cor: '#0ea5e9', corEscura: '#0369a1' },
+            velociraptor: { width: 60, height: 42, speed: 6.5, cor: '#ef4444', corEscura: '#b91c1c' }
+        };
+
+        // Estado inicial do Player
+        const player = {
+            type: 'triceratops',
+            x: 100,
+            y: 200,
+            width: configDinos.triceratops.width,
+            height: configDinos.triceratops.height,
+            speed: configDinos.triceratops.speed,
+            velY: 0,
+            jumping: false,
+            isMoving: false,
+            facingLeft: false,
+            animationFrame: 0
+        };
+
+        const gravity = 0.6;
+        const keys = {};
+        const alturaChao = canvas.height - 70;
+        
+        let chaoX = 0;
+        let montanhasX = 0;
+
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // Função chamada pelos botões da tela
+        function mudarDino(tipo) {
+            player.type = tipo;
+            player.width = configDinos[tipo].width;
+            player.height = configDinos[tipo].height;
+            player.speed = configDinos[tipo].speed;
+            
+            // Força o Dino a ajustar a altura no chão imediatamente para não bugar
+            player.y = alturaChao - player.height;
+            player.velY = 0;
+            player.jumping = false;
+
+            // Atualiza os botões visuais do HTML
+            document.querySelectorAll('.btn-dino').forEach(btn => btn.classList.remove('ativo'));
+            event.target.classList.add('ativo');
+        }
+
+        function update() {
+            // Pulo (Braquiossauro pula mais baixo por ser pesado, Velociraptor pula alto)
+            if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && !player.jumping) {
+                player.velY = player.type === 'braquiossauro' ? -10 : (player.type === 'velociraptor' ? -13 : -11.5);
+                player.jumping = true;
+            }
+
+            player.isMoving = false;
+
+            // Mover Direita
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                player.isMoving = true;
+                player.facingLeft = false;
+                if (player.x < canvas.width / 2) {
+                    player.x += player.speed;
+                } else {
+                    chaoX -= player.speed;        
+                    montanhasX -= player.speed * 0.2;   
+                }
+            }
+            
+            // Mover Esquerda
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.isMoving = true;
+                player.facingLeft = true;
+                if (player.x > 20) {
+                    player.x -= player.speed;
+                }
+            }
+
+            // Gravidade
+            player.velY += gravity;
+            player.y += player.velY;
+
+            // Colisão Chão
+            if (player.y >= alturaChao - player.height) {
+                player.y = alturaChao - player.height;
+                player.velY = 0;
+                player.jumping = false;
+            }
+
+            // Velocidade da animação varia de acordo com a velocidade do Dino
+            if (player.isMoving) {
+                player.animationFrame += player.type === 'velociraptor' ? 0.3 : 0.15;
+            } else {
+                player.animationFrame = 0;
+            }
+
+            if (chaoX <= -canvas.width) chaoX = 0;
+            if (montanhasX <= -canvas.width) montanhasX = 0;
+        }
+
+        function draw() {
+            // 1. Fundo do Céu
+            let skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#020617');
+            skyGradient.addColorStop(1, '#0f172a');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Planeta distante no céu
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.arc(650, 90, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Montanhas (Paralaxe)
+            ctx.fillStyle = '#1e293b';
+            for (let i = 0; i < 3; i++) {
+                let offset = montanhasX + (i * 420);
+                ctx.beginPath();
+                ctx.moveTo(offset, alturaChao);
+                ctx.lineTo(offset + 210, 160);
+                ctx.lineTo(offset + 420, alturaChao);
+                ctx.fill();
+            }
+
+            // 3. O Chão
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, alturaChao, canvas.width, 70);
+            ctx.fillStyle = '#3b82f6'; // Linha cyber-azul no chão
+            ctx.fillRect(0, alturaChao, canvas.width, 4);
+
+            // Detalhes móveis no chão
+            ctx.fillStyle = '#0f172a';
+            for (let i = 0; i < 15; i++) {
+                ctx.fillRect((chaoX + (i * 80)) % (canvas.width + 80), alturaChao + 30, 20, 4);
+            }
+
+            // 4. DESENHO DOS DINOSSAUROS RE-MODELADOS
+            ctx.save();
+            if (player.facingLeft) {
+                ctx.translate(player.x + player.width, player.y);
+                ctx.scale(-1, 1);
+            } else {
+                ctx.translate(player.x, player.y);
+            }
+
+            let dinoConf = configDinos[player.type];
+            let oscilarPata = Math.sin(player.animationFrame) * 6;
+
+            if (player.type === 'triceratops') {
+                // --- MODELAGEM TRICERATOPS ---
+                ctx.fillStyle = dinoConf.cor;
+                ctx.fillRect(0, 15, 14, 12); // Cauda
+                ctx.fillRect(10, 10, 42, 24); // Corpo robusto
+                
+                // Escudo da Cabeça (Frill)
+                ctx.fillStyle = dinoConf.corEscura;
+                ctx.fillRect(44, 0, 8, 25); 
+                
+                // Cabeça e Focinho
+                ctx.fillStyle = dinoConf.cor;
+                ctx.fillRect(48, 12, 16, 14);
+                
+                // Chifres (Brancos)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(58, 6, 8, 3);  // Chifre frontal
+                ctx.fillRect(50, 4, 6, 3);  // Chifre de cima
+                
+                // Olho
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(54, 14, 3, 3);
+
+                // 4 Patas Pesadas
+                ctx.fillStyle = dinoConf.corEscura;
+                ctx.fillRect(14, 34, 8, player.jumping ? 6 : 12 + oscilarPata);
+                ctx.fillRect(24, 34, 8, player.jumping ? 6 : 12 - oscilarPata);
+                ctx.fillRect(36, 34, 8, player.jumping ? 6 : 12 - oscilarPata);
+                ctx.fillRect(44, 34, 8, player.jumping ? 6 : 12 + oscilarPata);
+
+            } else if (player.type === 'braquiossauro') {
+                // --- MODELAGEM BRAQUIOSSAURO ---
+                ctx.fillStyle = dinoConf.cor;
+                ctx.fillRect(0, 52, 15, 8); // Cauda baixa
+                ctx.fillRect(10, 42, 40, 26); // Corpo Gigante
+
+                // Pescoço Gigante para Cima
+                ctx.fillRect(38, 10, 12, 35);
+                // Cabeça pequena
+                ctx.fillRect(42, 2, 16, 10);
+                
+                // Olho
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(52, 4, 3, 3);
+
+                // Patas estilo coluna
+                ctx.fillStyle = dinoConf.corEscura;
+                ctx.fillRect(15, 68, 9, player.jumping ? 5 : 12 + oscilarPata);
+                ctx.fillRect(26, 68, 9, player.jumping ? 5 : 12 - oscilarPata);
+                ctx.fillRect(38, 68, 9, player.jumping ? 5 : 12 - oscilarPata);
+
+            } else if (player.type === 'velociraptor') {
+                // --- MODELAGEM VELOCIRAPTOR ---
+                ctx.fillStyle = dinoConf.cor;
+                
+                // Cauda longa e reta (Equilíbrio aerodinâmico)
+                ctx.fillRect(0, 12, 22, 5); 
+                // Corpo inclinado
+                ctx.fillRect(18, 14, 25, 16); 
+                // Pescoço inclinado para a frente
+                ctx.fillRect(34, 4, 8, 12);
+                // Cabeça Alongada/Mandíbula
+                ctx.fillRect(36, 0, 20, 8);
+
+                // Olho bravo do raptor
+                ctx.fillStyle = '#fffb00'; // Olho amarelo
+                ctx.fillRect(44, 2, 2, 2);
+
+                // Bracinhos com garras afiadas
+                ctx.fillStyle = dinoConf.corEscura;
+                ctx.fillRect(32, 18, 6, 4);
+                ctx.fillRect(36, 20, 4, 4);
+
+                // Pernas finas de velocista (Animação corre mais rápido)
+                ctx.fillRect(20, 30, 6, player.jumping ? 6 : 12 + oscilarPata);
+                ctx.fillRect(30, 30, 6, player.jumping ? 6 : 12 - oscilarPata);
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
