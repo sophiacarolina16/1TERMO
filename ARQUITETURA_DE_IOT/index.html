@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Arduino Serial</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; text-align: center; }
+        .container { display: flex; justify-content: center; gap: 20px; margin-top: 50px; }
+        .card { background: #2d2d2d; padding: 20px; border-radius: 15px; width: 150px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .val { font-size: 2.5em; font-weight: bold; color: #00d4ff; }
+        button { padding: 15px 30px; font-size: 1.2em; cursor: pointer; border-radius: 10px; border: none; background: #28a745; color: white; margin-top: 20px; }
+        button:hover { background: #218838; }
+        .status { margin-top: 10px; color: #888; }
+    </style>
+</head>
+<body>
+
+    <h1>Monitoramento Serial Arduino</h1>
+    <p>IP do Servidor: 10.0.0.135</p>
+    
+    <button id="conectar">CONECTAR ARDUINO</button>
+    <p class="status" id="status">Status: Desconectado</p>
+
+    <div class="container">
+        <div class="card">
+            <h3>Luz</h3>
+            <div class="val" id="luz">--</div>
+        </div>
+        <div class="card">
+            <h3>Temperatura</h3>
+            <div class="val" id="temp">--</div><span>°C</span>
+        </div>
+        <div class="card">
+            <h3>Umidade</h3>
+            <div class="val" id="umi">--</div><span>%</span>
+        </div>
+    </div>
+
+    <script>
+        let port;
+        let reader;
+
+        document.getElementById('conectar').addEventListener('click', async () => {
+            try {
+                // Solicita acesso à porta serial
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                
+                document.getElementById('status').innerText = "Status: Conectado!";
+                document.getElementById('status').style.color = "#28a745";
+
+                const textDecoder = new TextDecoderStream();
+                const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+                reader = textDecoder.readable.getReader();
+
+                let buffer = "";
+
+                // Loop para ler os dados
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += value;
+                    
+                    // Se encontrar uma quebra de linha, processa o JSON
+                    if (buffer.includes('\n')) {
+                        try {
+                            const data = JSON.parse(buffer);
+                            document.getElementById('luz').innerText = data.luz;
+                            document.getElementById('temp').innerText = data.temp;
+                            document.getElementById('umi').innerText = data.umi;
+                            buffer = ""; // Limpa o buffer
+                        } catch (e) {
+                            buffer = ""; // Limpa buffer se o JSON vier quebrado
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Falha ao conectar. Verifique se o Monitor Serial do Arduino IDE está fechado.");
+            }
+        });
+    </script>
+</body>
+</html>
