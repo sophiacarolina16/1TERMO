@@ -1,0 +1,36 @@
+#include "DHT.h"
+
+const int sensorLuz = A0;
+const int led = 9;
+int limite = 70;
+
+const int dhtPin = 2;
+#define dhtType DHT11
+DHT dht(dhtPin, dhtType);
+
+void setup() {
+  pinMode(led, OUTPUT);
+  Serial.begin(9600); // Velocidade da Serial
+  dht.begin();
+}
+
+void loop() {
+  int valorLuz = analogRead(sensorLuz);
+  
+  if (valorLuz < limite) {
+    digitalWrite(led, HIGH);
+  } else {
+    digitalWrite(led, LOW);
+  }
+
+  float umidade = dht.readHumidity();
+  float temperatura = dht.readTemperature();
+
+  // Envia os dados como um objeto JSON em uma única linha
+  Serial.print("{\"luz\":"); Serial.print(valorLuz);
+  Serial.print(",\"temp\":"); Serial.print(isnan(temperatura) ? 0 : temperatura);
+  Serial.print(",\"umi\":"); Serial.print(isnan(umidade) ? 0 : umidade);
+  Serial.println("}");
+
+  delay(2000); 
+}

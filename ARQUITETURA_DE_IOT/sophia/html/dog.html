@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Adventure - Código Puro</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111424;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 2px;
+        }
+        canvas {
+            border: 4px solid #4a3f7a;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+        .controles {
+            margin-top: 15px;
+            text-align: center;
+            background: rgba(74, 63, 122, 0.2);
+            border: 1px solid #4a3f7a;
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+        span {
+            color: #ffb703;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>DOG DASH 🐕</h1>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div class="controles">
+        <p>Use as setas <strong>Esquerda / Direita</strong> (ou <span>A / D</span>) para mover.</p>
+        <p>Pressione <strong>Espaço / Seta para Cima</strong> (ou <span>W</span>) para pular!</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configurações do Player (Cachorro)
+        const player = {
+            x: 100,
+            y: 250,
+            width: 60,
+            height: 45,
+            speed: 5,
+            velY: 0,
+            jumping: false,
+            isMoving: false,
+            facingLeft: false,
+            animationFrame: 0
+        };
+
+        const gravity = 0.6;
+        const keys = {};
+        
+        // Posições dos cenários para o efeito de movimento (Paralaxe)
+        let chaoX = 0;
+        let montanhasX = 0;
+
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // LÓGICA DO JOGO
+        function update() {
+            // Pulo
+            if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && !player.jumping) {
+                player.velY = -12;
+                player.jumping = true;
+            }
+
+            player.isMoving = false;
+
+            // Mover para Direita
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                player.isMoving = true;
+                player.facingLeft = false;
+                
+                if (player.x < canvas.width / 2) {
+                    player.x += player.speed;
+                } else {
+                    chaoX -= 4;        // Chão move mais rápido
+                    montanhasX -= 1;   // Montanhas movem devagar (efeito de profundidade)
+                }
+            }
+            
+            // Mover para Esquerda
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.isMoving = true;
+                player.facingLeft = true;
+                if (player.x > 20) {
+                    player.x -= player.speed;
+                }
+            }
+
+            // Gravidade
+            player.velY += gravity;
+            player.y += player.velY;
+
+            // Limite do Chão
+            const alturaChao = canvas.height - 70;
+            if (player.y >= alturaChao - player.height) {
+                player.y = alturaChao - player.height;
+                player.velY = 0;
+                player.jumping = false;
+            }
+
+            // Atualiza o frame da animação das patinhas
+            if (player.isMoving) {
+                player.animationFrame += 0.15;
+            } else {
+                player.animationFrame = 0;
+            }
+
+            // Reset dos loops do cenário de fundo
+            if (chaoX <= -canvas.width) chaoX = 0;
+            if (montanhasX <= -canvas.width) montanhasX = 0;
+        }
+
+        // DESENHAR OS GRÁFICOS
+        function draw() {
+            // 1. Céu com Degradê Noturno
+            let skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#0f172a');
+            skyGradient.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Lua de fundo
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(700, 80, 30, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Montanhas Distantes (Camada 1 do Paralaxe)
+            ctx.fillStyle = '#312e81';
+            for (let i = 0; i < 3; i++) {
+                let offset = montanhasX + (i * 400);
+                ctx.beginPath();
+                ctx.moveTo(offset, canvas.height - 70);
+                ctx.lineTo(offset + 200, 150);
+                ctx.lineTo(offset + 400, canvas.height - 70);
+                ctx.fill();
+            }
+
+            // 3. O Chão (Camada 2 do Paralaxe)
+            ctx.fillStyle = '#065f46'; // Verde escuro
+            ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
+            ctx.fillStyle = '#059669'; // Grama superficial
+            ctx.fillRect(0, canvas.height - 70, canvas.width, 8);
+
+            // Detalhes no chão para ver o movimento acontecer
+            ctx.fillStyle = '#022c22';
+            for (let i = 0; i < 15; i++) {
+                ctx.fillRect((chaoX + (i * 80)) % (canvas.width + 80), canvas.height - 50, 15, 4);
+            }
+
+            // 4. DESENHAR O CACHORRO (PLAYER)
+            ctx.save();
+            
+            // Inverte o lado do cachorro caso mude de direção
+            if (player.facingLeft) {
+                ctx.translate(player.x + player.width, player.y);
+                ctx.scale(-1, 1);
+            } else {
+                ctx.translate(player.x, player.y);
+            }
+
+            // Cor principal do dog (Caramelo)
+            ctx.fillStyle = '#d97706'; 
+            
+            // Corpo
+            ctx.fillRect(10, 15, 35, 18);
+            
+            // Cabeça
+            ctx.fillRect(35, 2, 14, 14);
+            
+            // Focinho
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(45, 8, 8, 8);
+            ctx.fillStyle = '#000000'; // Nariz
+            ctx.fillRect(51, 8, 2, 3);
+
+            // Olho
+            ctx.fillRect(42, 5, 2, 3);
+
+            // Orelha caidinha
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(33, 4, 5, 10);
+
+            // Rabo (Abana se estiver correndo!)
+            ctx.fillStyle = '#d97706';
+            ctx.save();
+            ctx.translate(10, 18);
+            if (player.isMoving) {
+                ctx.rotate(Math.sin(player.animationFrame * 2) * 0.3);
+            }
+            ctx.fillRect(-8, -4, 10, 4);
+            ctx.restore();
+
+            // Patinhas Animadas (calcula o movimento baseado no seno)
+            ctx.fillStyle = '#78350f';
+            let movimentoPata = Math.sin(player.animationFrame) * 6;
+
+            if (player.jumping) {
+                // Posição das patas no ar
+                ctx.fillRect(13, 33, 5, 6);
+                ctx.fillRect(20, 33, 5, 6);
+                ctx.fillRect(32, 33, 5, 6);
+                ctx.fillRect(39, 33, 5, 6);
+            } else {
+                // Patas Traseiras
+                ctx.fillRect(12, 33, 5, 8 + movimentoPata);
+                ctx.fillRect(19, 33, 5, 8 - movimentoPata);
+                // Patas Dianteiras
+                ctx.fillRect(32, 33, 5, 8 - movimentoPata);
+                ctx.fillRect(39, 33, 5, 8 + movimentoPata);
+            }
+
+            ctx.restore();
+        }
+
+        // Loop Principal
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Inicia direto sem travar!
+        gameLoop();
+    </script>
+</body>
+</html>
